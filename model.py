@@ -15,11 +15,7 @@ def get_huggingface_api_model(model_id: str, **kwargs) -> HfApiModel:
     Returns:
         HfApiModel: Hugging Face API model instance.
     """
-    api_key = os.getenv("HF_TOKEN")
-    if not api_key:
-        raise ValueError("HF_TOKEN is not set")
-
-    return HfApiModel(model_id=model_id, token=api_key, **kwargs)
+    return HfApiModel(model_id=model_id, **kwargs)
 
 
 def get_inference_client_model(model_id: str, **kwargs) -> InferenceClientModel:
@@ -33,11 +29,7 @@ def get_inference_client_model(model_id: str, **kwargs) -> InferenceClientModel:
     Returns:
         InferenceClientModel: Inference client model instance.
     """
-    api_key = os.getenv("HF_TOKEN")
-    if not api_key:
-        raise ValueError("HF_TOKEN is not set")
-
-    return InferenceClientModel(model_id=model_id, token=api_key, **kwargs)
+    return InferenceClientModel(model_id=model_id, **kwargs)
 
 def get_model(model_type: str, model_id: str, **kwargs) -> Any:
     """
