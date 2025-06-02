@@ -6,8 +6,8 @@ import pandas as pd
 
 # custom imports
 from agents import Agent
-from tools import get_tools
-from models import get_model
+from tool import get_tools
+from model import get_model
 
 # (Keep Constants as is)
 # --- Constants ---
