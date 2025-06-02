@@ -1,106 +1,99 @@
 from smolagents import Tool
-from tabula import read_pdf
 import pandas as pd
-from typing import Optional, Dict, Any
+from typing import Optional
 
 class TableExtractorTool(Tool):
     """
-    Tool to extract tables from PDFs/webpages and answer queries about them.
-
-    Args:
-        file_path (str): Path to PDF file (optional)
-        url (str): URL of webpage containing tables (optional)
-        query (str): Natural language question about the table data (optional)
-
-    Returns:
-        str: Extracted table data or answer to query
+    Extracts tables from Excel (.xlsx, .xls) or CSV files and answers queries.
+    Auto-detects file type based on extension.
     """
-
-    name = "extract_table"
-    description = "Extracts tables from PDFs or webpages and answers questions about the data"
-    
+    name = "table_extractor"
+    description = "Reads Excel/CSV files and answers questions about tabular data"
     inputs = {
         "file_path": {
             "type": "string", 
-            "description": "Path to PDF file (either file_path or url required)",
-            "required": False
+            "description": "Path to Excel/CSV file"
         },
-        "url": {
+        "sheet_name": {
             "type": "string",
-            "description": "URL of webpage containing tables (either file_path or url required)",
+            "description": "Sheet name (Excel only, optional)",
             "required": False
         },
         "query": {
             "type": "string",
-            "description": "Natural language question about the table data",
+            "description": "Question about the data (e.g., 'total sales')",
             "required": False
         }
     }
-    
     output_type = "string"
 
-    def forward(self, file_path: Optional[str] = None, 
-               url: Optional[str] = None, 
+    def forward(self, 
+               file_path: str,
+               sheet_name: Optional[str] = None,
                query: Optional[str] = None) -> str:
         
-        # Validate input
-        if not file_path and not url:
-            return "Error: Either file_path or url must be provided"
-        
         try:
-            # Case 1: Extract from PDF
-            if file_path and file_path.endswith(".pdf"):
-                tables = read_pdf(file_path, pages="all", multiple_tables=True)
-                df = pd.concat(tables) if tables else None
+            # Validate file exists
+            if not os.path.exists(file_path):
+                return f"Error: File not found at {file_path}"
             
-            # Case 2: Extract from HTML (webpage)
-            elif url:
-                dfs = pd.read_html(url)
-                df = dfs[0] if dfs else None
+            # Read file based on extension
+            ext = os.path.splitext(file_path)[1].lower()
             
-            if df is None:
-                return "No tables found in the input source"
+            if ext in ('.xlsx', '.xls'):
+                df = self._read_excel(file_path, sheet_name)
+            elif ext == '.csv':
+                df = pd.read_csv(file_path)
+            else:
+                return f"Error: Unsupported file type {ext}"
             
-            # Answer query if provided
-            if query:
-                return self._answer_query(df, query)
-            return df.to_string()
+            if df.empty:
+                return "Error: No data found in file."
+            
+            return self._answer_query(df, query) if query else df.to_string()
             
         except Exception as e:
-            return f"Error processing table data: {str(e)}"
+            return f"Error processing file: {str(e)}"
+
+    def _read_excel(self, path: str, sheet_name: Optional[str]) -> pd.DataFrame:
+        """Read Excel file with sheet selection logic"""
+        if sheet_name:
+            return pd.read_excel(path, sheet_name=sheet_name)
+        
+        # Auto-detect first non-empty sheet
+        sheets = pd.ExcelFile(path).sheet_names
+        for sheet in sheets:
+            df = pd.read_excel(path, sheet_name=sheet)
+            if not df.empty:
+                return df
+        return pd.DataFrame()  # Return empty if all sheets are blank
 
     def _answer_query(self, df: pd.DataFrame, query: str) -> str:
-        """Helper method to answer questions about the table data"""
+        """Handles queries with pandas operations"""
+        query = query.lower()
+        
         try:
-            query = query.lower()
+            # SUM QUERIES (e.g., "total revenue")
+            if "total" in query or "sum" in query:
+                for col in df.select_dtypes(include='number').columns:
+                    if col.lower() in query:
+                        return f"Total {col}: {df[col].sum():.2f}"
             
-            # Example simple queries - you could expand this or integrate an LLM
-            if "total" in query and "sum" in query:
-                if "revenue" in query:
-                    col = "Revenue"
-                elif "sales" in query:
-                    col = "Sales"
-                else:
-                    # Try to find a numeric column
-                    numeric_cols = df.select_dtypes(include=['number']).columns
-                    col = numeric_cols[0] if len(numeric_cols) > 0 else None
-                
-                if col:
-                    return f"Total {col}: {df[col].sum()}"
-            
+            # AVERAGE QUERIES (e.g., "average price")
             elif "average" in query or "mean" in query:
-                # Find the most likely column referenced in query
-                for col in df.columns:
+                for col in df.select_dtypes(include='number').columns:
                     if col.lower() in query:
                         return f"Average {col}: {df[col].mean():.2f}"
-                
-                # Default to first numeric column
-                numeric_cols = df.select_dtypes(include=['number']).columns
-                if len(numeric_cols) > 0:
-                    return f"Average {numeric_cols[0]}: {df[numeric_cols[0]].mean():.2f}"
             
-            # Fallback: return the table
-            return f"Here's the table data:\n{df.to_string()}\n\nQuery '{query}' not fully understood."
+            # FILTER QUERIES (e.g., "show sales > 1000")
+            elif ">" in query or "<" in query:
+                col = next((c for c in df.columns if c.lower() in query), None)
+                if col:
+                    filtered = df.query(query.replace(col, f"`{col}`"))
+                    return filtered.to_string()
+            
+            # DEFAULT: Return full table with column names
+            return f"Data:\nColumns: {', '.join(df.columns)}\n\n{df.to_string()}"
             
         except Exception as e:
-            return f"Error answering query: {str(e)}\nTable data:\n{df.to_string()}"
+            return f"Query failed: {str(e)}\nAvailable columns: {', '.join(df.columns)}"
