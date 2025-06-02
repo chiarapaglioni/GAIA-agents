@@ -7,6 +7,7 @@ import pandas as pd
 # custom imports
 from agents import Agent
 from tools import get_tools
+from models import get_model
 
 # (Keep Constants as is)
 # --- Constants ---
@@ -33,7 +34,7 @@ def run_and_submit_all( profile: gr.OAuthProfile | None):
 
     # 1. Instantiate Agent ( modify this part to create your agent)
     try:
-        agent = Agent(tools=get_tools())
+        agent = Agent(model=get_model("OpenAIServerModel", "gpt-4.1"), tools=get_tools())
     except Exception as e:
         print(f"Error instantiating agent: {e}")
         return f"Error initializing agent: {e}", None
