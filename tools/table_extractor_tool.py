@@ -1,6 +1,7 @@
 from smolagents import Tool
 import pandas as pd
 from typing import Optional
+import os
 
 class TableExtractorTool(Tool):
     """
@@ -17,12 +18,14 @@ class TableExtractorTool(Tool):
         "sheet_name": {
             "type": "string",
             "description": "Sheet name (Excel only, optional)",
-            "required": False
+            "required": False,
+            "nullable": True
         },
         "query": {
             "type": "string",
             "description": "Question about the data (e.g., 'total sales')",
-            "required": False
+            "required": False,
+            "nullable": True
         }
     }
     output_type = "string"
