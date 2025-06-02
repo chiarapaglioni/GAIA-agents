@@ -10,4 +10,3 @@ smolagents[transformers]
 transformers
 wikipedia-api
 youtube-transcript-api
-tabula
