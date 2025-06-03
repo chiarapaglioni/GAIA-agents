@@ -1,7 +1,17 @@
 import os
 from typing import Any, Callable
 from smolagents import HfApiModel, InferenceClientModel
+from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
 
+class LocalTransformersModel:
+    def __init__(self, model_id: str, **kwargs):
+        self.tokenizer = AutoTokenizer.from_pretrained(model_id)
+        self.model = AutoModelForCausalLM.from_pretrained(model_id, **kwargs)
+        self.pipeline = pipeline("text-generation", model=self.model, tokenizer=self.tokenizer)
+
+    def __call__(self, prompt: str, **kwargs):
+        outputs = self.pipeline(prompt, **kwargs)
+        return outputs[0]["generated_text"]
 
 def get_huggingface_api_model(model_id: str, **kwargs) -> HfApiModel:
     """
@@ -30,6 +40,11 @@ def get_inference_client_model(model_id: str, **kwargs) -> InferenceClientModel:
     """
     return InferenceClientModel(model_id=model_id, token=os.getenv("HF_TOKEN"), **kwargs)
 
+
+def get_local_model(model_id: str, **kwargs) -> LocalTransformersModel:
+    return LocalTransformersModel(model_id=model_id, **kwargs)
+
+
 def get_model(model_type: str, model_id: str, **kwargs) -> Any:
     """
     Returns a model instance based on the specified type.
@@ -45,6 +60,7 @@ def get_model(model_type: str, model_id: str, **kwargs) -> Any:
     models: dict[str, Callable[..., Any]] = {
         "HfApiModel": get_huggingface_api_model,
         "InferenceClientModel": get_inference_client_model,
+        "LocalTransformersModel": get_local_model,
     }
 
     if model_type not in models:
