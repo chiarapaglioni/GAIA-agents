@@ -1,7 +1,9 @@
 import os
 from typing import Any, Callable
-
 from smolagents import HfApiModel, InferenceClientModel
+
+
+os.environ["HF_TOKEN"] = os.environ.get("HF_TOKEN")
 
 
 def get_huggingface_api_model(model_id: str, **kwargs) -> HfApiModel:
@@ -29,7 +31,7 @@ def get_inference_client_model(model_id: str, **kwargs) -> InferenceClientModel:
     Returns:
         InferenceClientModel: Inference client model instance.
     """
-    return InferenceClientModel(model_id=model_id, **kwargs)
+    return InferenceClientModel(model_id=model_id, token=os.environ["HF_TOKEN"], **kwargs)
 
 def get_model(model_type: str, model_id: str, **kwargs) -> Any:
     """
