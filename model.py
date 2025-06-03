@@ -14,7 +14,7 @@ def get_huggingface_api_model(model_id: str, **kwargs) -> HfApiModel:
     Returns:
         HfApiModel: Hugging Face API model instance.
     """
-    return HfApiModel(model_id=model_id, **kwargs)
+    return HfApiModel(model_id=model_id, token=os.getenv("HF_TOKEN"), **kwargs)
 
 
 def get_inference_client_model(model_id: str, **kwargs) -> InferenceClientModel:
@@ -28,7 +28,7 @@ def get_inference_client_model(model_id: str, **kwargs) -> InferenceClientModel:
     Returns:
         InferenceClientModel: Inference client model instance.
     """
-    return InferenceClientModel(model_id=model_id, token=os.environ.get("HF_TOKEN"), **kwargs)
+    return InferenceClientModel(model_id=model_id, token=os.getenv("HF_TOKEN"), **kwargs)
 
 def get_model(model_type: str, model_id: str, **kwargs) -> Any:
     """
