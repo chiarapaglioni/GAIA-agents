@@ -6,6 +6,7 @@ pandas
 smolagents
 smolagents[audio]
 smolagents[transformers]
+smolagents[openai]
 transformers
 wikipedia-api
 youtube-transcript-api
