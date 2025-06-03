@@ -35,7 +35,7 @@ def run_and_submit_all( profile: gr.OAuthProfile | None):
     # 1. Instantiate Agent ( modify this part to create your agent)
     try:
         agent = Agent(
-            model=get_model("HfApiModel", "mistralai/Mixtral-8x7B-Instruct-v0.1"),
+            model=get_model("InferenceClientModel", "meta-llama/Llama-3.3-70B-Instruct"),
             tools=get_tools()
         )
     except Exception as e:
