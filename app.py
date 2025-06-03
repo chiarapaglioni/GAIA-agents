@@ -8,6 +8,7 @@ import pandas as pd
 from agents import Agent
 from tool import get_tools
 from model import get_model
+from smolagents import OpenAIServerModel
 
 # (Keep Constants as is)
 # --- Constants ---
@@ -34,7 +35,10 @@ def run_and_submit_all( profile: gr.OAuthProfile | None):
 
     # 1. Instantiate Agent ( modify this part to create your agent)
     try:
-        agent = Agent(model=get_model("InferenceClientModel", "meta-llama/Llama-3.3-70B-Instruct"), tools=get_tools())
+        agent = Agent(
+            model=OpenAIServerModel(model_id="gpt-4o-mini"), 
+            tools=get_tools()
+        )
     except Exception as e:
         print(f"Error instantiating agent: {e}")
         return f"Error initializing agent: {e}", None
