@@ -8,7 +8,6 @@ import pandas as pd
 from agents import Agent
 from tool import get_tools
 from model import get_model
-from smolagents.models import HfApiModel
 
 # (Keep Constants as is)
 # --- Constants ---
@@ -36,7 +35,7 @@ def run_and_submit_all( profile: gr.OAuthProfile | None):
     # 1. Instantiate Agent ( modify this part to create your agent)
     try:
         agent = Agent(
-            model=HfApiModel(model_id="mistralai/Mixtral-8x7B-Instruct-v0.1"),
+            model=get_model("HfApiModel", "mistralai/Mixtral-8x7B-Instruct-v0.1"),
             tools=get_tools()
         )
     except Exception as e:
