@@ -2,6 +2,7 @@ import os
 from typing import Any, Callable
 from smolagents import HfApiModel, InferenceClientModel
 from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
+from functools import lru_cache
 
 class LocalTransformersModel:
     def __init__(self, model_id: str, **kwargs):
@@ -45,6 +46,7 @@ def get_local_model(model_id: str, **kwargs) -> LocalTransformersModel:
     return LocalTransformersModel(model_id=model_id, **kwargs)
 
 
+@lru_cache(maxsize=1)
 def get_model(model_type: str, model_id: str, **kwargs) -> Any:
     """
     Returns a model instance based on the specified type.
