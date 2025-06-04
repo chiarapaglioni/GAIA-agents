@@ -15,33 +15,12 @@ from typing import Dict, List
 # custom imports
 from agents import Agent
 from tool import get_tools
+from model import get_model
 
 # (Keep Constants as is)
 # --- Constants ---
 DEFAULT_API_URL = "https://agents-course-unit4-scoring.hf.space"
 MODEL_ID = "microsoft/phi-3-mini-4k-instruct"
-
-
-# --- Optimized Model Loading ---
-@lru_cache(maxsize=1)  # Cache model to avoid reloads
-def get_model():
-    tokenizer = AutoTokenizer.from_pretrained(MODEL_ID)
-    model = AutoModelForCausalLM.from_pretrained(
-        MODEL_ID,
-        device_map="cpu",
-        torch_dtype=torch.float32
-    )
-    
-    # Disable bitsandbytes
-    model.config.quantization_config = None
-
-    class Phi3Wrapper:
-        def generate(self, prompt):
-            inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
-            outputs = model.generate(**inputs, max_new_tokens=256)
-            return tokenizer.decode(outputs[0], skip_special_tokens=True)
-    
-    return Phi3Wrapper()
 
 # --- Async Question Processing ---
 async def process_question(agent, question: str, task_id: str) -> Dict:
@@ -93,7 +72,7 @@ async def run_and_submit_all( profile: gr.OAuthProfile | None):
     # 1. Instantiate Agent
     try:
         agent = Agent(
-            model=get_model(),
+            model=get_model("LocalTransformersModel", "HuggingFaceH4/zephyr-7b-beta"),
             tools=get_tools()
         )
     except Exception as e:
