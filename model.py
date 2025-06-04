@@ -14,6 +14,8 @@ class LocalTransformersModel:
         outputs = self.pipeline(prompt, **kwargs)
         return outputs[0]["generated_text"]
 
+
+@lru_cache(maxsize=1)
 def get_huggingface_api_model(model_id: str, **kwargs) -> HfApiModel:
     """
     Returns a Hugging Face API model instance.
@@ -28,6 +30,7 @@ def get_huggingface_api_model(model_id: str, **kwargs) -> HfApiModel:
     return HfApiModel(model_id=model_id, token=os.getenv("HF_TOKEN"), **kwargs)
 
 
+@lru_cache(maxsize=1)
 def get_inference_client_model(model_id: str, **kwargs) -> InferenceClientModel:
     """
     Returns an Inference Client model instance.
@@ -42,11 +45,11 @@ def get_inference_client_model(model_id: str, **kwargs) -> InferenceClientModel:
     return InferenceClientModel(model_id=model_id, token=os.getenv("HF_TOKEN"), **kwargs)
 
 
+@lru_cache(maxsize=1)
 def get_local_model(model_id: str, **kwargs) -> LocalTransformersModel:
     return LocalTransformersModel(model_id=model_id, **kwargs)
 
 
-@lru_cache(maxsize=1)
 def get_model(model_type: str, model_id: str, **kwargs) -> Any:
     """
     Returns a model instance based on the specified type.
