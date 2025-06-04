@@ -20,7 +20,7 @@ from model import get_model
 # (Keep Constants as is)
 # --- Constants ---
 DEFAULT_API_URL = "https://agents-course-unit4-scoring.hf.space"
-MODEL_ID = "microsoft/phi-3-mini-4k-instruct"
+MODEL_ID = "HuggingFaceH4/zephyr-7b-beta"
 
 # --- Async Question Processing ---
 async def process_question(agent, question: str, task_id: str) -> Dict:
