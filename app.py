@@ -24,29 +24,16 @@ MODEL_ID = "microsoft/phi-3-mini-4k-instruct"
 
 # --- Optimized Model Loading ---
 @lru_cache(maxsize=1)  # Cache model to avoid reloads
-def get_model() -> pipeline:
-    """Returns an optimized 4-bit quantized pipeline"""
-    bnb_config = BitsAndBytesConfig(
-        load_in_4bit=True,
-        bnb_4bit_quant_type="nf4",
-        bnb_4bit_compute_dtype=torch.float16
-    )
-    
-    tokenizer = AutoTokenizer.from_pretrained(MODEL_ID)
+def get_model():
     model = AutoModelForCausalLM.from_pretrained(
         MODEL_ID,
-        quantization_config=bnb_config,
-        device_map="auto"
+        device_map="cpu",
+        torch_dtype=torch.float32
     )
     
-    return pipeline(
-        "text-generation",
-        model=model,
-        tokenizer=tokenizer,
-        max_new_tokens=256,
-        do_sample=False,
-        temperature=0.1
-    )
+    # Disable bitsandbytes
+    model.config.quantization_config = None
+    return model
 
 
 # --- Async Question Processing ---
