@@ -83,7 +83,7 @@ async def run_and_submit_all( profile: gr.OAuthProfile | None):
     # 1. Instantiate Agent
     try:
         agent = Agent(
-            model=get_model("LocalTransformersModel", "HuggingFaceH4/zephyr-7b-beta"),
+            model=get_model("LocalTransformersModel", MODEL_ID),
             tools=get_tools()
         )
     except Exception as e:
