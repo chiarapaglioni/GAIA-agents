@@ -25,6 +25,7 @@ MODEL_ID = "microsoft/phi-3-mini-4k-instruct"
 # --- Optimized Model Loading ---
 @lru_cache(maxsize=1)  # Cache model to avoid reloads
 def get_model():
+    tokenizer = AutoTokenizer.from_pretrained(MODEL_ID)
     model = AutoModelForCausalLM.from_pretrained(
         MODEL_ID,
         device_map="cpu",
@@ -33,8 +34,14 @@ def get_model():
     
     # Disable bitsandbytes
     model.config.quantization_config = None
-    return model
 
+    return pipeline(
+        "text-generation",
+        model=model,
+        tokenizer=tokenizer,
+        max_new_tokens=256,
+        do_sample=False
+    )
 
 # --- Async Question Processing ---
 async def process_question(agent, question: str, task_id: str) -> Dict:
