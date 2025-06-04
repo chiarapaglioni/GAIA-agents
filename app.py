@@ -38,15 +38,26 @@ async def process_question(agent, question: str, task_id: str) -> Dict:
             "log": {"Task ID": task_id, "Question": question, "Submitted Answer": error_msg}
         }
 
+
+def batch_generate(self, prompts: List[str], **kwargs):
+    return [out["generated_text"] for out in self.pipeline(prompts, **kwargs)]
+
+
 async def run_questions_async(agent, questions_data: List[Dict]) -> tuple:
-    """Returns (answers_for_submission, full_log)"""
-    results = await asyncio.gather(*[
-        process_question(agent, q["question"], q["task_id"])
-        for q in questions_data
-    ])
+    questions = [q["question"] for q in questions_data]
+    task_ids = [q["task_id"] for q in questions_data]
+
+    # Generate all answers in batch
+    answers = agent.model.batch_generate(questions, max_new_tokens=200, do_sample=False)
+
+    results = [{
+        "submission": {"task_id": tid, "submitted_answer": ans},
+        "log": {"Task ID": tid, "Question": q, "Submitted Answer": ans}
+    } for q, tid, ans in zip(questions, task_ids, answers)]
+
     return (
-        [r["submission"] for r in results],  # For API submission
-        [r["log"] for r in results]          # For display/logging
+        [r["submission"] for r in results],
+        [r["log"] for r in results]
     )
 
 
