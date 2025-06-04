@@ -35,13 +35,13 @@ def get_model():
     # Disable bitsandbytes
     model.config.quantization_config = None
 
-    return pipeline(
-        "text-generation",
-        model=model,
-        tokenizer=tokenizer,
-        max_new_tokens=256,
-        do_sample=False
-    )
+    class Phi3Wrapper:
+        def generate(self, prompt):
+            inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
+            outputs = model.generate(**inputs, max_new_tokens=256)
+            return tokenizer.decode(outputs[0], skip_special_tokens=True)
+    
+    return Phi3Wrapper()
 
 # --- Async Question Processing ---
 async def process_question(agent, question: str, task_id: str) -> Dict:
