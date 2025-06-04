@@ -9,3 +9,6 @@ transformers
 wikipedia-api
 youtube-transcript-api
 duckduckgo-search
+bitsandbytes
+accelerate
+torch
