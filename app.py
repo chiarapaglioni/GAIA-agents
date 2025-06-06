@@ -3,17 +3,65 @@ import gradio as gr
 import requests
 import inspect
 import pandas as pd
+import torch
+import asyncio
+
+# model
+from concurrent.futures import ThreadPoolExecutor
+from functools import lru_cache
+from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline, BitsAndBytesConfig
+from typing import Dict, List
 
 # custom imports
 from agents import Agent
-from tools import get_tools
-from models import get_model
+from tool import get_tools
+from model import get_model
 
 # (Keep Constants as is)
 # --- Constants ---
 DEFAULT_API_URL = "https://agents-course-unit4-scoring.hf.space"
+MODEL_ID = "HuggingFaceH4/zephyr-7b-beta"
 
-def run_and_submit_all( profile: gr.OAuthProfile | None):
+# --- Async Question Processing ---
+async def process_question(agent, question: str, task_id: str) -> Dict:
+    """Returns both answer AND full log entry"""
+    try:
+        answer = agent(question)
+        return {
+            "submission": {"task_id": task_id, "submitted_answer": answer},
+            "log": {"Task ID": task_id, "Question": question, "Submitted Answer": answer}
+        }
+    except Exception as e:
+        error_msg = f"ERROR: {str(e)}"
+        return {
+            "submission": {"task_id": task_id, "submitted_answer": error_msg},
+            "log": {"Task ID": task_id, "Question": question, "Submitted Answer": error_msg}
+        }
+
+
+def batch_generate(self, prompts: List[str], **kwargs):
+    return [out["generated_text"] for out in self.pipeline(prompts, **kwargs)]
+
+
+async def run_questions_async(agent, questions_data: List[Dict]) -> tuple:
+    questions = [q["question"] for q in questions_data]
+    task_ids = [q["task_id"] for q in questions_data]
+
+    # Generate all answers in batch
+    answers = agent.model.batch_generate(questions, max_new_tokens=200, do_sample=False)
+
+    results = [{
+        "submission": {"task_id": tid, "submitted_answer": ans},
+        "log": {"Task ID": tid, "Question": q, "Submitted Answer": ans}
+    } for q, tid, ans in zip(questions, task_ids, answers)]
+
+    return (
+        [r["submission"] for r in results],
+        [r["log"] for r in results]
+    )
+
+
+async def run_and_submit_all( profile: gr.OAuthProfile | None):
     """
     Fetches all questions, runs the BasicAgent on them, submits all answers,
     and displays the results.
@@ -32,9 +80,12 @@ def run_and_submit_all( profile: gr.OAuthProfile | None):
     questions_url = f"{api_url}/questions"
     submit_url = f"{api_url}/submit"
 
-    # 1. Instantiate Agent ( modify this part to create your agent)
+    # 1. Instantiate Agent
     try:
-        agent = Agent(model=get_model("OpenAIServerModel", "gpt-4.1"), tools=get_tools())
+        agent = Agent(
+            model=get_model("LocalTransformersModel", MODEL_ID),
+            tools=get_tools()
+        )
     except Exception as e:
         print(f"Error instantiating agent: {e}")
         return f"Error initializing agent: {e}", None
@@ -64,22 +115,8 @@ def run_and_submit_all( profile: gr.OAuthProfile | None):
         return f"An unexpected error occurred fetching questions: {e}", None
 
     # 3. Run your Agent
-    results_log = []
-    answers_payload = []
     print(f"Running agent on {len(questions_data)} questions...")
-    for item in questions_data:
-        task_id = item.get("task_id")
-        question_text = item.get("question")
-        if not task_id or question_text is None:
-            print(f"Skipping item with missing task_id or question: {item}")
-            continue
-        try:
-            submitted_answer = agent(question_text)
-            answers_payload.append({"task_id": task_id, "submitted_answer": submitted_answer})
-            results_log.append({"Task ID": task_id, "Question": question_text, "Submitted Answer": submitted_answer})
-        except Exception as e:
-             print(f"Error running agent on task {task_id}: {e}")
-             results_log.append({"Task ID": task_id, "Question": question_text, "Submitted Answer": f"AGENT ERROR: {e}"})
+    answers_payload, results_log = await run_questions_async(agent, questions_data)
 
     if not answers_payload:
         print("Agent did not produce any answers to submit.")
@@ -140,15 +177,9 @@ with gr.Blocks() as demo:
     gr.Markdown(
         """
         **Instructions:**
-
         1.  Please clone this space, then modify the code to define your agent's logic, the tools, the necessary packages, etc ...
         2.  Log in to your Hugging Face account using the button below. This uses your HF username for submission.
         3.  Click 'Run Evaluation & Submit All Answers' to fetch questions, run your agent, submit answers, and see the score.
-
-        ---
-        **Disclaimers:**
-        Once clicking on the "submit button, it can take quite some time ( this is the time for the agent to go through all the questions).
-        This space provides a basic setup and is intentionally sub-optimal to encourage you to develop your own, more robust solution. For instance for the delay process of the submit button, a solution could be to cache the answers and submit in a seperate action or even to answer the questions in async.
         """
     )
 
