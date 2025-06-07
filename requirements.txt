@@ -13,7 +13,7 @@ wikipedia-api
 youtube-transcript-api
 torch
 duckduckgo_search
-google-genai
+google-generativeai
 imageio
 yt-dlp
 markdownify
