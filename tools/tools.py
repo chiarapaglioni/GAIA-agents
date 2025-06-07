@@ -79,11 +79,12 @@ def ask_youtube_video(url: str, question: str) -> str:
     Returns:
         str: The model's answer to the question.
     """
+    model_name = 'models/gemini-1.5-flash-latest'  # Update to latest model naming
+
     try:
         client = genai.Client(api_key=os.getenv('GEMINI_API'))
-        model = 'models/gemini-1.5-flash-latest'  # Update to latest model naming
         response = client.generate_content(
-            model=model,
+            model=model_name,
             contents=[
                 {"role": "user", "parts": [
                     {"text": question},
@@ -93,7 +94,7 @@ def ask_youtube_video(url: str, question: str) -> str:
         )
         return response.text
     except Exception as e:
-        return f"Error asking {model} about video: {str(e)}"
+        return f"Error asking {model_name} about video: {str(e)}"
 
 
 #  File Reading Tool 
