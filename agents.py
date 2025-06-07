@@ -1,12 +1,90 @@
 from typing import Any, List, Optional
 
 from smolagents import CodeAgent
+from tools.final_answer import check_reasoning, ensure_formatting
 
+from string import Template
+from typing import Dict
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
 
 DEFAULT_API_URL = "https://agents-course-unit4-scoring.hf.space"
+
+def get_prompt_templates() -> Dict[str, str]:
+    """Returns all prompts as a dictionary of pre-formatted strings"""
+    
+    # Shared components
+    tools_instructions = """
+    Available Tools:
+    - web_search(query): Performs web searches
+    - wikipedia_search(query): Searches Wikipedia
+    - visit_webpage(url): Retrieves webpage content
+    
+    Rules:
+    1. Always use 'Thought:'/'Code:' sequences
+    2. Never reuse variable names
+    3. Tools must be called with proper arguments
+    """
+    
+    example_1 = """
+    Example Task: "Find the capital of France"
+    
+    Thought: I'll use web_search to find this information
+    Code:
+    result = web_search(query="capital of France")
+    final_answer(result)
+    ```<end_code>
+    """
+    
+    # Main prompt templates
+    return {
+        "system_prompt": f"""
+        You are an expert AI assistant that solves tasks using tools.
+        {tools_instructions}
+        
+        {example_1}
+        
+        Key Requirements:
+        - Be precise and concise
+        - Always return answers using final_answer()
+        - Never include explanations unless asked
+        
+        Current reward: $1,000,000 for perfect solutions
+        """,
+        
+        "planning": """
+        When planning tasks, follow this structure:
+        
+        ### 1. Facts Given
+        List known information
+        
+        ### 2. Facts Needed
+        List what needs research
+        
+        ### 3. Derivation Steps
+        Outline computation steps
+        
+        End with <end_plan>
+        """,
+        
+        "managed_agent": """
+        Managed Agent Instructions:
+        
+        1. Task outcome (short)
+        2. Detailed explanation 
+        3. Additional context
+        
+        Always return via final_answer()
+        """,
+        
+        "final_answer": """
+        Response Format Rules:
+        - Numbers: 42 (no commas/units)
+        - Strings: paris (lowercase, no articles)
+        - Lists: apple,orange,banana (no brackets)
+        """
+    }
 
 class Agent:
     """
@@ -42,6 +120,8 @@ class Agent:
             add_base_tools=True,
             additional_authorized_imports=self.imports,
         )
+
+        self.final_answer_checks=[check_reasoning, ensure_formatting],
         
         self.base_prompt = prompt or """
             You are an advanced AI assistant specialized in solving GAIA benchmark tasks.
@@ -56,6 +136,8 @@ class Agent:
 
             Remember: GAIA requires exact answer matching. Just provide the factual answer.
             """
+        
+        self.prompt_templates = get_prompt_templates()
         logger.info("Agent initialized")
 
     def __call__(self, question: str, files: List[str] = None) -> str:

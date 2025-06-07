@@ -5,6 +5,7 @@ from smolagents import (
     Tool,
     VisitWebpageTool,
     WikipediaSearchTool,
+    FinalAnswerTool,
 )
 
 from tools.tools import (
@@ -27,6 +28,7 @@ def get_tools() -> List[Tool]:
         List[Tool]: List of initialized tool instances.
     """
     tools = [
+        FinalAnswerTool(),
         DuckDuckGoSearchTool(),
         PythonInterpreterTool(),
         WikipediaSearchTool(),
