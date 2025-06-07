@@ -1,15 +1,7 @@
 import os
 import gradio as gr
 import requests
-import inspect
 import pandas as pd
-import torch
-import asyncio
-
-# model
-from concurrent.futures import ThreadPoolExecutor
-from functools import lru_cache
-from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline, BitsAndBytesConfig
 from typing import Dict, List
 
 # custom imports
@@ -20,11 +12,11 @@ from model import get_model
 # (Keep Constants as is)
 # --- Constants ---
 DEFAULT_API_URL = "https://agents-course-unit4-scoring.hf.space"
-MODEL_ID = "HuggingFaceH4/zephyr-7b-beta"
+MODEL_ID = "gemini/gemini-2.5-flash-preview-04-17"
 
 # --- Async Question Processing ---
 async def process_question(agent, question: str, task_id: str) -> Dict:
-    """Returns both answer AND full log entry"""
+    """Process a single question and return both answer AND full log entry"""
     try:
         answer = agent(question)
         return {
@@ -38,27 +30,17 @@ async def process_question(agent, question: str, task_id: str) -> Dict:
             "log": {"Task ID": task_id, "Question": question, "Submitted Answer": error_msg}
         }
 
-
-def batch_generate(self, prompts: List[str], **kwargs):
-    return [out["generated_text"] for out in self.pipeline(prompts, **kwargs)]
-
-
 async def run_questions_async(agent, questions_data: List[Dict]) -> tuple:
-    questions = [q["question"] for q in questions_data]
-    task_ids = [q["task_id"] for q in questions_data]
-
-    # Generate all answers in batch
-    answers = agent.model.batch_generate(questions, max_new_tokens=200, do_sample=False)
-
-    results = [{
-        "submission": {"task_id": tid, "submitted_answer": ans},
-        "log": {"Task ID": tid, "Question": q, "Submitted Answer": ans}
-    } for q, tid, ans in zip(questions, task_ids, answers)]
-
-    return (
-        [r["submission"] for r in results],
-        [r["log"] for r in results]
-    )
+    """Process questions sequentially instead of in batch"""
+    submissions = []
+    logs = []
+    
+    for q in questions_data:
+        result = await process_question(agent, q["question"], q["task_id"])
+        submissions.append(result["submission"])
+        logs.append(result["log"])
+    
+    return submissions, logs
 
 
 async def run_and_submit_all( profile: gr.OAuthProfile | None):
@@ -83,7 +65,7 @@ async def run_and_submit_all( profile: gr.OAuthProfile | None):
     # 1. Instantiate Agent
     try:
         agent = Agent(
-            model=get_model("LocalTransformersModel", MODEL_ID),
+            model=get_model("LiteLLMModel", MODEL_ID),
             tools=get_tools()
         )
     except Exception as e:
@@ -103,6 +85,7 @@ async def run_and_submit_all( profile: gr.OAuthProfile | None):
              print("Fetched questions list is empty.")
              return "Fetched questions list is empty or invalid format.", None
         print(f"Fetched {len(questions_data)} questions.")
+        questions_data = questions_data[:2]
     except requests.exceptions.RequestException as e:
         print(f"Error fetching questions: {e}")
         return f"Error fetching questions: {e}", None

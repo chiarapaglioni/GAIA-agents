@@ -1,14 +1,23 @@
 from typing import List
-from tools.read_file_tool import ReadFileTool
-from tools.youtube_transcription_tool import YouTubeTranscriptionTool
-from tools.table_extractor_tool import TableExtractorTool
-
 from smolagents import (
     DuckDuckGoSearchTool,
     PythonInterpreterTool,
     Tool,
     VisitWebpageTool,
     WikipediaSearchTool,
+)
+
+from tools.tools import (
+    vision_tool,
+    youtube_frames_to_images,
+    ask_youtube_video, 
+    read_text_file,
+    file_from_url,
+    transcribe_youtube, 
+    audio_to_text, 
+    extract_text_via_ocr, 
+    summarize_csv_data,
+    summarize_excel_data,
 )
 
 def get_tools() -> List[Tool]:
@@ -22,8 +31,15 @@ def get_tools() -> List[Tool]:
         PythonInterpreterTool(),
         WikipediaSearchTool(),
         VisitWebpageTool(),
-        ReadFileTool(),
-        YouTubeTranscriptionTool(),
-        TableExtractorTool(),
+        vision_tool,
+        youtube_frames_to_images,
+        ask_youtube_video, 
+        read_text_file,
+        file_from_url,
+        transcribe_youtube, 
+        audio_to_text, 
+        extract_text_via_ocr, 
+        summarize_csv_data,
+        summarize_excel_data,
     ]
     return tools
