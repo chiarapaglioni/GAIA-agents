@@ -4,6 +4,8 @@ from typing import Any, Callable
 from smolagents import LiteLLMModel
 from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
 from functools import lru_cache
+import time
+from litellm import RateLimitError
 
 
 class LocalTransformersModel:
@@ -16,8 +18,18 @@ class LocalTransformersModel:
         outputs = self.pipeline(prompt, **kwargs)
         return outputs[0]["generated_text"]
 
+class WrapperLiteLLMModel(LiteLLMModel):
+    def __call__(self, messages, **kwargs):
+        max_retry = 5
+        for _ in range(max_retry):
+            try:
+                return super().__call__(messages, **kwargs)
+            except RateLimitError:
+                time.sleep(20)
+        raise RateLimitError("Rate limit of {max_retry} exceded!")
+
 @lru_cache(maxsize=1)
-def get_lite_llm_model(model_id: str,  **kwargs) -> LiteLLMModel:
+def get_lite_llm_model(model_id: str,  **kwargs) -> WrapperLiteLLMModel:
     """
     Returns a LiteLLM model instance.
 
@@ -28,7 +40,7 @@ def get_lite_llm_model(model_id: str,  **kwargs) -> LiteLLMModel:
     Returns:
         LiteLLMModel: LiteLLM model instance.
     """
-    return LiteLLMModel(model_id=model_id, api_key=os.getenv("GEMINI_API"), **kwargs)
+    return WrapperLiteLLMModel(model_id=model_id, api_key=os.getenv("GEMINI_API"), **kwargs)
 
 
 @lru_cache(maxsize=1)
