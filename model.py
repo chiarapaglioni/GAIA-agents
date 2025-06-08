@@ -5,6 +5,7 @@ from smolagents import LiteLLMModel
 from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
 from functools import lru_cache
 import time
+import re
 from litellm import RateLimitError
 
 
@@ -21,12 +22,20 @@ class LocalTransformersModel:
 class WrapperLiteLLMModel(LiteLLMModel):
     def __call__(self, messages, **kwargs):
         max_retry = 5
-        for _ in range(max_retry):
+        for attempt in range(max_retry):
             try:
                 return super().__call__(messages, **kwargs)
-            except RateLimitError:
-                time.sleep(20)
-        raise RateLimitError("Rate limit of {max_retry} exceded!")
+            except RateLimitError as e:
+                print(f"RateLimitError (attempt {attempt+1}/{max_retry})")
+
+                # Try to extract retry time from the exception string
+                match = re.search(r'"retryDelay": ?"(\d+)s"', str(e))
+                retry_seconds = int(match.group(1)) if match else 50
+
+                print(f"Sleeping for {retry_seconds} seconds before retrying...")
+                time.sleep(retry_seconds)
+
+        raise RateLimitError(f"Rate limit exceeded after {max_retry} retries.")
 
 @lru_cache(maxsize=1)
 def get_lite_llm_model(model_id: str,  **kwargs) -> WrapperLiteLLMModel:

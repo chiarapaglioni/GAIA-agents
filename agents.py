@@ -3,9 +3,9 @@ from typing import Any, List, Optional
 from smolagents import CodeAgent
 from tools.final_answer import check_reasoning, ensure_formatting
 
-from string import Template
 from typing import Dict
 from utils.logger import get_logger
+import time
 
 logger = get_logger(__name__)
 
@@ -145,8 +145,8 @@ class Agent:
         if self.verbose:
             print(f"Agent received question: {question[:50]}... with files: {files}")
         
-        result = self.answer_question(question, files[0] if files else None)        
-        return result
+        time.sleep(25)        
+        return self.answer_question(question, files[0] if files else None)
 
     def answer_question(self, question: str, task_file_path: Optional[str] = None) -> str:
         """
