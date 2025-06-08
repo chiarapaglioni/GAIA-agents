@@ -16,6 +16,8 @@ from pytesseract import image_to_string
 
 load_dotenv()
 
+MODEL_ID = "gemini/gemini-2.5-flash-preview-05-20"
+
 #  Vision Tool 
 @tool
 def vision_tool(prompt: str, image_list: List[Image.Image]) -> str:
@@ -27,8 +29,7 @@ def vision_tool(prompt: str, image_list: List[Image.Image]) -> str:
     Returns:
         str: Model's response to the prompt about the images.
     """
-    model_id = "gemini/gemini-1.5-flash"
-    model = LiteLLMModel(model_id=model_id, api_key=os.getenv("GEMINI_API"), temperature=0.2)
+    model = LiteLLMModel(model_id=MODEL_ID, api_key=os.getenv("GEMINI_API"), temperature=0.2)
     
     payload = [{"type": "text", "text": prompt}] + [{"type": "image", "image": img} for img in image_list]
     return model([{"role": "user", "content": payload}]).content
@@ -79,12 +80,11 @@ def ask_youtube_video(url: str, question: str) -> str:
     Returns:
         str: The model's answer to the question.
     """
-    model_name = 'models/gemini-1.5-flash-latest'  # Update to latest model naming
 
     try:
         client = genai.Client(api_key=os.getenv('GEMINI_API'))
         response = client.generate_content(
-            model=model_name,
+            model=MODEL_ID,
             contents=[
                 {"role": "user", "parts": [
                     {"text": question},
@@ -94,7 +94,7 @@ def ask_youtube_video(url: str, question: str) -> str:
         )
         return response.text
     except Exception as e:
-        return f"Error asking {model_name} about video: {str(e)}"
+        return f"Error asking {MODEL_ID} about video: {str(e)}"
 
 
 #  File Reading Tool 
